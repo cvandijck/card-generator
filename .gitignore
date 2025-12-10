@@ -11,7 +11,7 @@ tests/data/**
 !tests/data/README.md
 
 # Data
-src/card_generator/data/**
+scripts/data/**
 !src/card_generator/data/README.md
 
 # Documentation
