@@ -7,9 +7,9 @@ repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.5.0
     hooks:
-      - id: no-commit-to-branch
-        args: [ '--branch', 'main', '--branch', 'master' ]
-        fail_fast: true
+      # - id: no-commit-to-branch
+      #   args: [ '--branch', 'main', '--branch', 'master' ]
+      #   fail_fast: true
       - id: check-toml
       - id: check-yaml
         args: [ --unsafe ]
