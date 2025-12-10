@@ -1,0 +1,155 @@
+# Build
+build/**
+dist/**
+*egg-info/**
+
+# Tests
+tests/data/**
+!tests/data/README.md
+
+# Data
+src/card_generator/data/**
+!src/card_generator/data/README.md
+
+# Documentation
+docs/_build/**
+docs/api/_generated/**
+
+####### TEMPLATE #######
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
+
+# cruft
+*.rej
+
+# Data
+*.csv*
+*.dat*
+*.pickle*
+*.xls*
+*.zip*
+
+# Environments
+.env
+.venv
+.envrc
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+dist/
+
+# Hypothesis
+.hypothesis/
+
+# Jupyter
+*.ipynb
+.ipynb_checkpoints/
+
+# macOS
+.DS_Store
+
+# mypy
+.dmypy.json
+.mypy_cache/
+
+# Node.js
+node_modules/
+
+# PyCharm
+.idea/
+
+# VSCode
+.vscode/
+
+# pyenv
+.python-version
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Ruff
+.ruff_cache/
+
+# celery beat schedule file
+celerybeat-schedule
+
+# SageMath parsed files
+*.sage.py
+
+# Spyder project settings
+.spyderproject
+.spyproject
+
+# Rope project settings
+.ropeproject
+
+# mkdocs documentation
+/site
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+#  Usually these files are written by a python script from a template
+#  before PyInstaller builds the exe, so as to inject date/other infos into it.
+*.manifest
+*.spec
+
+# C extensions
+*.so
+
+# Translations
+*.mo
+*.pot
+
+# Django stuff:
+*.log
+local_settings.py
+db.sqlite3
+
+# Flask stuff:
+instance/
+.webassets-cache
+
+# Scrapy stuff:
+.scrapy
+
+# Sphinx documentation
+docs/_build/
+
+# PyBuilder
+target/

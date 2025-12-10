@@ -1,0 +1,125 @@
+##  PROJECT  ##
+[build-system]
+requires = ['setuptools', 'setuptools-scm']
+build-backend = 'setuptools.build_meta'
+
+[project]
+name = 'card_generator'
+authors = [
+    { name = 'Christophe Van Dijck', email = 'christophe.vdijck@gmail.com' },
+]
+description = 'Generate fun artificial cards for holidays or other occassions'
+readme = { file = 'README.md', content-type = 'text/markdown' }
+requires-python = '>=3.12'
+keywords = []
+license = { text = 'BSD-3-Clause' }
+classifiers = [
+    'Development Status :: 3 - Alpha',
+    'Intended Audience :: Developers',
+    'Programming Language :: Python :: 3',
+]
+dynamic = ['version']
+dependencies = []
+
+[dependency-groups]
+dev = ['build', 'twine', 'pytest', 'pytest-cov', 'pre-commit', 'wheel']
+
+[project.scripts]
+'card_generator' = 'card_generator.__main__:main'
+
+[project.urls]
+Homepage = 'https://github.com/cvandijck/card-generator'
+Documentation = 'https://github.com/cvandijck/card-generator#readme'
+Repository = 'https://github.com/cvandijck/card-generator.git'
+Issues = 'https://github.com/cvandijck/card-generator/issues'
+
+[tool.setuptools.package-data]
+'card_generator.data' = ['*.*']
+
+[tool.setuptools.dynamic]
+version = { attr = "card_generator.__version__" }
+
+##  RUFF  ##
+[tool.ruff]
+extend-exclude = [
+    '.git',        # No need to traverse our git directory
+    '__pycache__', # There's no value in checking cache directories
+    '**/*_depr',   # Ignore deprecated dirs
+    '*_depr',      # Ignore deprecated files
+]
+line-length = 80 # Set max line length
+target-version = 'py39' # Specify our minimal target version
+
+[tool.ruff.lint]
+select = [
+    'F',   # pyflakes
+    'E',   # pycodestyle
+    'W',   # pycodestyle
+    'C90', # mccabe
+    'I',   # isort
+    'N',   # pep8-naming
+    'D',   # pydocstyle
+    'A',   # flake8-builtins
+    'B',   # flake8-bugbear
+    'Q0',  # flake8-quotes
+    'C4',  # flake8-comprehensions
+]
+
+extend-select = []
+
+ignore = [
+    'E266', # too many leading ‘#’ for block comment
+    'E501', # line length violations
+    'E731', # usage of lambda expressions
+    'D1',   # docstrings
+]
+
+unfixable = [
+    'B',    # Avoid trying to fix flake8-bugbear (B) violations.
+    'F401', # Avoid fixing unused imports during development
+]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 50 # McCabe complexity threshold, should we test on this?
+
+[tool.ruff.lint.per-file-ignores]
+'__init__.py' = [
+    'E402', # Ignore E402 (import violations) in all `__init__.py` files.
+]
+
+[tool.ruff.lint.flake8-quotes]
+docstring-quotes = 'double'
+inline-quotes = 'single'
+multiline-quotes = 'double'
+
+[tool.ruff.lint.isort]
+known-local-folder = ['card_generator']
+force-wrap-aliases = true
+
+[tool.ruff.lint.pydocstyle]
+convention = 'google' # Specify docstring convention for pydocstyle
+
+[tool.ruff.format]
+quote-style = 'single'
+indent-style = 'space'
+docstring-code-format = false
+
+##  PYTEST  ##
+[tool.pytest.ini_options]
+minversion = '6.0'
+addopts = [
+    '-ra',
+    '-vv',
+    # breaks pytest in vscode; added for CI but need to find fix
+    # '--junitxml=_build/test-results.xml',
+    # '--cov=src',
+    # '--cov-report=xml:_build/coverage.xml',
+    # '--cov-report=html:_build/htmlcov',
+]
+log_cli = true
+log_cli_level = 'INFO'
+testpaths = ['tests']
+markers = [
+    "slow: slow tests that should not run by default",
+    "console: test that directly test the console entrypoint",
+]
