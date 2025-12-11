@@ -3,9 +3,7 @@ import logging
 from pathlib import Path
 
 from card_generator import __version__
-from card_generator.resources import get_resource_path
 from card_generator.exceptions import CodedError, UnknownError
-
 
 LOGGER = logging.getLogger(name='card_generator')
 
@@ -41,7 +39,9 @@ def main():
         description='Generate fun artificial cards for holidays or other occassions',
     )
     parser.add_argument('input_file', help='Input file to run card_generator')
-    parser.add_argument('output_file', help='Output of card_generator will be written here')
+    parser.add_argument(
+        'output_file', help='Output of card_generator will be written here'
+    )
 
     args = parser.parse_args()
     input_file = args.input_file

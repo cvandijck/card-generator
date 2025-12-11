@@ -15,7 +15,9 @@ def test_import_package():
 def test_console_help():
     """Calls help file of console script and tests for failure."""
     process = subprocess.run(
-        [PYTHON_EXE, '-m', 'card_generator', '--help'], capture_output=True, universal_newlines=True
+        [PYTHON_EXE, '-m', 'card_generator', '--help'],
+        capture_output=True,
+        universal_newlines=True,
     )
     assert process.returncode == 0, process.stderr
 
@@ -24,6 +26,8 @@ def test_console_help():
 def test_console_noargs():
     """Runs console without arguments expecting to fail."""
     process = subprocess.run(
-        [PYTHON_EXE, '-m', 'card_generator'], capture_output=True, universal_newlines=True
+        [PYTHON_EXE, '-m', 'card_generator'],
+        capture_output=True,
+        universal_newlines=True,
     )
     assert process.returncode == 2, process.stderr
