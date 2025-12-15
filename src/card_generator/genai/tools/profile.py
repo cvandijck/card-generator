@@ -14,21 +14,37 @@ LOGGER = logging.getLogger(__name__)
 
 _DEFAULT_PROFILE_MODEL = GeminiModel(name=GeminiModelName.GEMINI_2_5_FLASH)
 _PROMPT = """
-You are an agent working in a system that generates personalized greeting cards.
+You are an expert at creating detailed written profiles for individuals that will guide AI image generation.
 
-You are an expert at creating written profiles for individuals that will be used to generate images of them.
-Your task is to create a detailed written profile for each individual based on a provided picture and (optionally) a short user-provided description.
-The written profile should capture the key physical characteristics and personality traits of the individual as inferred
-from the picture and description to ensure accurate representation in the final generated image.
+Task: Analyze the provided image and optional description to create a comprehensive profile that captures:
 
-The profile should be concise yet descriptive, focusing on aspects such as facial features, expressions, attire, and any notable attributes.
-The profile should be formatted as a single paragraph of text.
+1. Physical Characteristics:
+   - Facial features (face shape, skin tone, distinctive features)
+   - Hair (color, style, length, texture)
+   - Eyes (color, shape, expression)
+   - Age appearance and build
+   - Attire and accessories
+
+2. Expression & Demeanor:
+   - Facial expression and emotional state
+   - Posture and body language
+   - Overall personality impression
+
+3. Key Identity Markers:
+   - Any unique or distinctive features that define this person's appearance
+   - Elements critical for maintaining accurate representation
+
+Output Requirements:
+- Write as a single, flowing paragraph
+- Be specific and descriptive (avoid vague terms like "nice" or "pleasant")
+- Focus on visual details that an image generator needs to recreate this person accurately
+- Prioritize features that maintain the person's identity and likeness
 
 <UserProvidedDescription>
 {description}
 </UserProvidedDescription>
 
-Profile description:
+Detailed profile:
 """
 
 
