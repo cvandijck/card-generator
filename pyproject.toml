@@ -27,6 +27,7 @@ dependencies = [
 
 [dependency-groups]
 dev = ['build', 'twine', 'pytest', 'pytest-cov', 'pre-commit', 'wheel']
+app = ['streamlit>=1.30.0', 'pyyaml>=6.0']
 
 [project.scripts]
 'card_generator' = 'card_generator.__main__:main'

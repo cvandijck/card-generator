@@ -1,0 +1,53 @@
+scenes:
+  Custom: ""
+  Christmas Sled Ride: |
+    The family needs to be dressed in Christmas sweaters and are sliding down a snowy hill on a sled.
+    The sled is going very fast and there is snow flying everywhere.
+    While the parents are panicking, the kids are having a great time.
+    The background should feature a winter wonderland with pine trees and mountains.
+  Cozy Fireplace: |
+    The family is gathered around a cozy fireplace in matching pajamas.
+    They are holding hot cocoa mugs and smiling warmly.
+    The room is decorated with twinkling lights and a beautifully decorated Christmas tree in the corner.
+    Stockings hang from the mantle and presents are visible under the tree.
+  Beach Vacation: |
+    The family is at a tropical beach with crystal clear water and white sand.
+    They are building a sandcastle together and laughing.
+    Palm trees sway in the background and the sun is setting with beautiful orange and pink colors.
+    Everyone is wearing summer clothes and looking happy and relaxed.
+  Birthday Party: |
+    The family is celebrating a birthday with colorful balloons and streamers everywhere.
+    A birthday cake with lit candles is in the center.
+    Everyone is wearing party hats and confetti is falling around them.
+    The scene is festive and full of joy with presents visible in the background.
+  Autumn Adventure: |
+    The family is jumping into a large pile of colorful autumn leaves.
+    They are wearing cozy sweaters and scarves.
+    The background shows trees with red, orange, and yellow leaves.
+    Pumpkins and hay bales are visible in the scene, creating a warm fall atmosphere.
+  Winter Wonderland: |
+    The family is ice skating together on a frozen pond surrounded by snow-covered trees.
+    Some are wobbling and holding hands for support while others glide gracefully.
+    Snowflakes are gently falling and everyone is bundled up in warm winter clothing.
+    A small warming hut with smoke coming from the chimney is visible in the background.
+
+styles:
+  Custom: ""
+  Cartoon/Comic: "Use a vibrant cartoon style similar to classic comic books with bold outlines and bright colors."
+  Watercolor: "Use a soft watercolor painting style with gentle brushstrokes and flowing colors."
+  Pixar Animation: "Use a 3D animated style similar to Pixar movies with smooth rendering and expressive characters."
+  Realistic: "Use photorealistic style with natural lighting, accurate proportions, and lifelike details."
+  Disney Animation: "Use a classic 2D Disney animation style with smooth lines and magical, whimsical elements."
+  Oil Painting: "Use a classical oil painting style with rich textures and artistic brushwork."
+  Pop Art: "Use a bold pop art style with bright colors, strong contrasts, and comic-like elements."
+  Vintage: "Use a vintage photograph style with slightly muted colors and nostalgic feel."
+
+overlays:
+  Custom: ""
+  Happy Holidays!: 'Overlay the image with the text "Happy Holidays!" in a playful, festive font at the top.'
+  Merry Christmas!: 'Overlay the image with the text "Merry Christmas!" in an elegant script font with sparkles.'
+  Happy Birthday!: 'Overlay the image with the text "Happy Birthday!" in colorful, fun letters.'
+  Season's Greetings: 'Overlay the image with the text "Season''s Greetings" in a classic, sophisticated font.'
+  Happy New Year!: 'Overlay the image with the text "Happy New Year!" with firework effects around it.'
+  Warmest Wishes: 'Overlay the image with the text "Warmest Wishes" in a cozy, handwritten style.'
+  No Text: "No text overlay needed."
