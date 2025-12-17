@@ -25,12 +25,11 @@ Resolution = Literal['1K', '2K', '4K']
 
 
 class GeminiModelName(StrEnum):
-    GEMMA_3_27B = 'gemma-3-27b'
     GEMINI_2_5_FLASH = 'gemini-2.5-flash'
     GEMINI_3_PRO_IMAGE_PREVIEW = 'gemini-3-pro-image-preview'
 
 
-DEFAULT_TEXT_MODEL_NAME = GeminiModelName.GEMMA_3_27B
+DEFAULT_TEXT_MODEL_NAME = GeminiModelName.GEMINI_2_5_FLASH
 DEFAULT_IMAGE_MODEL_NAME = GeminiModelName.GEMINI_3_PRO_IMAGE_PREVIEW
 
 
