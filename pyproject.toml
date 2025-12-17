@@ -52,7 +52,7 @@ extend-exclude = [
     '**/*_depr',   # Ignore deprecated dirs
     '*_depr',      # Ignore deprecated files
 ]
-line-length = 80 # Set max line length
+line-length = 100 # Set max line length
 target-version = 'py39' # Specify our minimal target version
 
 [tool.ruff.lint]
@@ -74,7 +74,6 @@ extend-select = []
 
 ignore = [
     'E266', # too many leading ‘#’ for block comment
-    'E501', # line length violations
     'E731', # usage of lambda expressions
     'D1',   # docstrings
 ]
