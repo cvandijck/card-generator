@@ -3,7 +3,7 @@ import io
 import logging
 import os
 from pathlib import Path
-from typing import Literal, Optional
+from typing import Optional
 
 import streamlit as st
 import yaml
@@ -13,7 +13,6 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from card_generator.genai import GEMINI_API_KEY_KEY
 from card_generator.genai.tools.card import generate_card
-from card_generator.genai.tools.profile import enhance_profile_description
 from card_generator.genai.tools.scene import enhance_scene_instructions
 from card_generator.genai.tools.style import enhance_style_instructions
 from card_generator.image.profile import ProfilePicture
@@ -34,6 +33,7 @@ SESSION_CURRENT_MEMBER_INDEX = 'current_member_index'
 SESSION_SCENE_ENHANCED = 'scene_enhanced'
 SESSION_STYLE_ENHANCED = 'style_enhanced'
 SESSION_FAMILY_MEMBERS = 'family_members'
+SESSION_GENERATED_IMAGE = 'generated_image'
 
 # Session state key formats (for dynamic keys)
 SESSION_UPLOAD_FMT = 'upload_{}'
@@ -137,24 +137,6 @@ def load_config():
     return normalize_config(config)
 
 
-async def enhance_text(
-    field_type: Literal['scene', 'style', 'profile'],
-    text: Optional[str],
-    image: Optional[Image.Image] = None,
-) -> Optional[str]:
-    """Enhance text using appropriate AI function based on field type."""
-    if not text:
-        return None
-
-    if field_type == 'scene':
-        return await enhance_scene_instructions(text)
-    elif field_type == 'style':
-        return await enhance_style_instructions(text)
-    elif field_type == 'profile' and image:
-        return await enhance_profile_description(image, text)
-    return text
-
-
 def display_enhancement_proposal(field_key: str, proposed_text: str) -> Optional[bool]:
     """Display enhancement proposal with accept/decline buttons.
 
@@ -184,11 +166,16 @@ def main():
     # Load configuration
     config = load_config()
 
-    if not os.getenv(GEMINI_API_KEY_KEY):
-        st.error(
-            f'{GEMINI_API_KEY_KEY} not found in environment variables. '
-            'Please set it in a .env file or your environment.'
-        )
+    st.sidebar.title('🔑 API Key Configuration')
+    gemini_key = st.sidebar.text_input(
+        label='Gemini API Key',
+        value=os.getenv(GEMINI_API_KEY_KEY, ''),
+        key=GEMINI_API_KEY_KEY,
+        type='password',
+    )
+
+    if not gemini_key:
+        st.sidebar.error('Please enter your Gemini API Key to continue.')
 
     predefined_scenes = config['scenes']
     predefined_styles = config['styles']
@@ -368,8 +355,10 @@ def main():
             if SESSION_SCENE_ENHANCED not in st.session_state:
                 with st.spinner('✨ Enhancing scene description...'):
                     try:
-                        LOGGER.debug('Calling enhance_text for scene...')
-                        enhanced = asyncio.run(enhance_text('scene', app_state.scene_instructions))
+                        LOGGER.debug('Calling enhance_scene_instructions...')
+                        enhanced = asyncio.run(
+                            enhance_scene_instructions(app_state.scene_instructions)
+                        )
                         LOGGER.info('Scene enhancement completed.')
                         if enhanced:
                             st.session_state[SESSION_SCENE_ENHANCED] = enhanced
@@ -444,8 +433,10 @@ def main():
             if SESSION_STYLE_ENHANCED not in st.session_state:
                 with st.spinner('✨ Enhancing style description...'):
                     try:
-                        LOGGER.debug('Calling enhance_text for style...')
-                        enhanced = asyncio.run(enhance_text('style', app_state.style_instructions))
+                        LOGGER.debug('Calling enhance_style_instructions...')
+                        enhanced = asyncio.run(
+                            enhance_style_instructions(app_state.style_instructions)
+                        )
                         LOGGER.info('Style enhancement completed.')
                         if enhanced:
                             st.session_state[SESSION_STYLE_ENHANCED] = enhanced
@@ -541,45 +532,41 @@ def main():
                             style_instructions=app_state.style_instructions,
                         )
                     )
+                    st.session_state[SESSION_GENERATED_IMAGE] = generated_image
 
                     # Display the result
                     st.success('🎉 Card generated successfully!')
-
-                    # Show the generated image
-                    st.header('🖼️ Your Generated Card')
-                    st.image(
-                        generated_image,
-                        caption='Generated Holiday Card',
-                        width='stretch',
-                    )
-
-                    # Download button
-                    buf = io.BytesIO()
-                    generated_image.save(buf, format='PNG')
-                    byte_im = buf.getvalue()
-
-                    st.download_button(
-                        label='📥 Download Card',
-                        data=byte_im,
-                        file_name='holiday_card.png',
-                        mime='image/png',
-                        use_container_width=True,
-                    )
 
                 except Exception as e:
                     st.error(f'❌ Error generating card: {str(e)}')
                     st.exception(e)
 
+    generated_image = st.session_state.get(SESSION_GENERATED_IMAGE)
+    if generated_image:
+        # Show the generated image
+        st.header('🖼️ Your Generated Card')
+        st.image(
+            generated_image,
+            caption='Generated Holiday Card',
+            width='stretch',
+        )
+
+        # Download button
+        buf = io.BytesIO()
+        generated_image.save(buf, format='PNG')
+        byte_im = buf.getvalue()
+
+        st.download_button(
+            label='📥 Download Card',
+            data=byte_im,
+            file_name='holiday_card.png',
+            mime='image/png',
+            use_container_width=True,
+        )
+
     # Footer
-    st.markdown('---')
-    st.markdown(
-        """
-        <div style='text-align: center; color: gray;'>
-            Made with ❤️ using Streamlit and Google Gemini AI
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    st.space(size='large')
+    st.markdown(':grey[Made with ❤️]', text_alignment='center')
 
 
 if __name__ == '__main__':
