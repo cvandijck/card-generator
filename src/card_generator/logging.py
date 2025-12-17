@@ -28,9 +28,7 @@ def configure_logging(
     formatter = logging.Formatter(log_format)
 
     if log_file_path:
-        file_handler = logging.FileHandler(
-            filename=str(log_file_path), mode=log_file_mode
-        )
+        file_handler = logging.FileHandler(filename=str(log_file_path), mode=log_file_mode)
         file_handler.setFormatter(formatter)
         file_handler.setLevel(level)
         logger.addHandler(file_handler)

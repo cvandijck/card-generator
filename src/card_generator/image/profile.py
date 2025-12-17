@@ -11,9 +11,7 @@ class ProfilePicture:
     description: str
 
     @classmethod
-    def from_filepath(
-        cls, path: Path, person: str, description: str
-    ) -> 'ProfilePicture':
+    def from_filepath(cls, path: Path, person: str, description: str) -> 'ProfilePicture':
         image = PIL.Image.open(path)
         return cls(image=image, person=person, description=description)
 

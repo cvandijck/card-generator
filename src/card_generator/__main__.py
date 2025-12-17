@@ -39,9 +39,7 @@ def main():
         description='Generate fun artificial cards for holidays or other occassions',
     )
     parser.add_argument('input_file', help='Input file to run card_generator')
-    parser.add_argument(
-        'output_file', help='Output of card_generator will be written here'
-    )
+    parser.add_argument('output_file', help='Output of card_generator will be written here')
 
     args = parser.parse_args()
     input_file = args.input_file

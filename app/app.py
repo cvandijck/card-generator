@@ -1,18 +1,75 @@
 import asyncio
 import io
 import logging
+import os
 from pathlib import Path
+from typing import Literal, Optional
 
 import streamlit as st
 import yaml
+from dotenv import load_dotenv
 from PIL import Image
+from pydantic import BaseModel, ConfigDict, Field
 
+from card_generator.genai import GEMINI_API_KEY_KEY
 from card_generator.genai.tools.card import generate_card
+from card_generator.genai.tools.profile import enhance_profile_description
+from card_generator.genai.tools.scene import enhance_scene_instructions
+from card_generator.genai.tools.style import enhance_style_instructions
 from card_generator.image.profile import ProfilePicture
-from card_generator.logging import configure_logging
+from card_generator.logging import configure_logging, convert_logging_level
 
 # UI Configuration
 TEXTAREA_HEIGHT = 150
+LOGGER = logging.getLogger(__name__)
+
+
+# Load env
+load_dotenv()
+
+
+class AppState(BaseModel):
+    """Core application state."""
+
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+    # Family member profile data
+    family_members: list[ProfilePicture] = Field(default_factory=list)
+
+    # Generation instructions
+    topic: str = ''
+    scene_instructions: str = ''
+    style_instructions: str = ''
+    overlay_instructions: str = ''
+
+
+def get_app_state() -> AppState:
+    """Get or initialize the app state from session."""
+    if 'app_state' not in st.session_state:
+        st.session_state.app_state = AppState()
+    return st.session_state.app_state
+
+
+def init_ui_state():
+    """Initialize UI-specific session state (presets, enhancement flags)."""
+    if 'scene_preset' not in st.session_state:
+        st.session_state.scene_preset = 'Christmas Sled Ride'
+    if 'style_preset' not in st.session_state:
+        st.session_state.style_preset = 'Cartoon/Comic'
+    if 'overlay_preset' not in st.session_state:
+        st.session_state.overlay_preset = 'Happy Holidays!'
+    if 'enhancing_scene' not in st.session_state:
+        st.session_state.enhancing_scene = False
+    if 'enhancing_style' not in st.session_state:
+        st.session_state.enhancing_style = False
+
+
+@st.cache_resource
+def cached_configure_logging():
+    # Configure logging
+    log_level_str = os.getenv('LOG_LEVEL', 'WARNING').upper()
+    log_level = convert_logging_level(log_level_str)
+    configure_logging(level=log_level, exclude_external_logs=True)
 
 
 def normalize_text(text: str) -> str:
@@ -44,16 +101,74 @@ def load_config():
     return normalize_config(config)
 
 
+async def enhance_text(
+    field_type: Literal['scene', 'style', 'profile'],
+    text: Optional[str],
+    image: Optional[Image.Image] = None,
+) -> Optional[str]:
+    """Enhance text using appropriate AI function based on field type."""
+    if not text:
+        return None
+
+    if field_type == 'scene':
+        return await enhance_scene_instructions(text)
+    elif field_type == 'style':
+        return await enhance_style_instructions(text)
+    elif field_type == 'profile' and image:
+        return await enhance_profile_description(image, text)
+    return text
+
+
+def display_enhancement_proposal(field_key: str, proposed_text: str) -> Optional[bool]:
+    """Display enhancement proposal with accept/decline buttons.
+
+    Returns True if accepted, False if declined.
+    """
+    LOGGER.debug(f'Displaying enhancement proposal for {field_key}')
+    st.info(f'✨ **Enhanced Version:**\n\n{proposed_text}')
+
+    container = st.container(horizontal=True)
+    with container:
+        st.space(size='stretch')
+        if st.button('✅ Accept', key=f'{field_key}_accept'):
+            LOGGER.info(f'Accept button clicked for {field_key}')
+            return True
+        if st.button('❌ Decline', key=f'{field_key}_decline'):
+            LOGGER.info(f'Decline button clicked for {field_key}')
+            return False
+        st.space(size='stretch')
+
+    return None
+
+
 def main():
     """Main function to run the Streamlit app."""
-    # Configure logging
-    configure_logging(level=logging.INFO, exclude_external_logs=True)
+    cached_configure_logging()
 
     # Load configuration
     config = load_config()
+
+    if not os.getenv(GEMINI_API_KEY_KEY):
+        st.error(
+            f'{GEMINI_API_KEY_KEY} not found in environment variables. '
+            'Please set it in a .env file or your environment.'
+        )
+
     predefined_scenes = config['scenes']
     predefined_styles = config['styles']
     predefined_overlays = config['overlays']
+
+    # Get application state
+    app_state = get_app_state()
+    init_ui_state()
+
+    # Initialize default instructions if empty
+    if not app_state.scene_instructions:
+        app_state.scene_instructions = predefined_scenes[st.session_state.scene_preset]
+    if not app_state.style_instructions:
+        app_state.style_instructions = predefined_styles[st.session_state.style_preset]
+    if not app_state.overlay_instructions:
+        app_state.overlay_instructions = predefined_overlays[st.session_state.overlay_preset]
 
     # Page configuration
     st.set_page_config(
@@ -65,10 +180,8 @@ def main():
     # Title and description
     st.title('🎄 AI Holiday Card Generator')
     st.markdown(
-        """
-        Generate personalized holiday cards using AI! Upload family photos and customize your card with descriptions,
-        scene instructions, and style preferences.
-        """
+        'Generate personalized holiday cards using AI! Upload family photos and customize '
+        'your card with descriptions, scene instructions, and style preferences.'
     )
 
     st.markdown('---')
@@ -81,14 +194,15 @@ def main():
 
         # Number of family members
         num_members = st.number_input(
-            'Number of family members',
+            label='Number of family members',
             min_value=1,
             max_value=10,
             value=2,
             step=1,
         )
 
-        family_members = []
+        # Reset family members list for fresh collection
+        app_state.family_members = []
         uploaded_files = []
 
         for i in range(num_members):
@@ -111,9 +225,7 @@ def main():
                     )
 
             with col_b:
-                person_name = st.text_input(
-                    'Name', value=f'Person {i + 1}', key=f'name_{i}'
-                )
+                person_name = st.text_input('Name', value=f'Person {i + 1}', key=f'name_{i}')
                 description = st.text_area(
                     'Description',
                     value='Family member',
@@ -124,106 +236,191 @@ def main():
                 if uploaded_file:
                     try:
                         image = Image.open(uploaded_file)
-                        family_members.append(
-                            {
-                                'image': image,
-                                'person': person_name,
-                                'description': description,
-                            }
+                        app_state.family_members.append(
+                            ProfilePicture(
+                                image=image,
+                                person=person_name,
+                                description=description,
+                            )
                         )
                     except Exception as e:
                         st.error(f'Error loading image: {str(e)}')
 
     with col2:
         st.header('⚙️ Customize Your Card')
-        expand_descriptions = st.checkbox(
-            'Expand Profile Descriptions',
-            value=True,
-            help='Let AI generate more detailed descriptions of family members',
-        )
 
-        topic = st.text_input(
+        app_state.topic = st.text_input(
             'Card Topic/Theme',
-            value='Holiday',
+            value=app_state.topic,
             help='The theme of your card (e.g., Holiday, Birthday, Christmas)',
         )
 
-        # Initialize session state for presets
-        if 'scene_preset' not in st.session_state:
-            st.session_state.scene_preset = 'Christmas Sled Ride'
-        if 'style_preset' not in st.session_state:
-            st.session_state.style_preset = 'Cartoon/Comic'
-        if 'overlay_preset' not in st.session_state:
-            st.session_state.overlay_preset = 'Happy Holidays!'
-
         # Scene selection
         st.subheader('🎬 Scene')
-        scene_preset = st.selectbox(
+        new_scene_preset = st.selectbox(
             'Choose a preset scene or create your own',
             options=list(predefined_scenes.keys()),
-            index=list(predefined_scenes.keys()).index(
-                st.session_state.scene_preset
-            ),
+            index=list(predefined_scenes.keys()).index(st.session_state.scene_preset),
             help="Select a predefined scene or choose 'Custom' to write your own",
-            key='scene_preset_select',
-            on_change=lambda: st.session_state.update(
-                {'scene_preset': st.session_state.scene_preset_select}
-            ),
         )
-        st.session_state.scene_preset = scene_preset
 
-        scene_default = predefined_scenes[scene_preset]
-        scene_instructions = st.text_area(
-            'Scene Instructions',
-            value=scene_default,
-            height=TEXTAREA_HEIGHT,
-            help='Describe the scene you want in your card',
-        )
+        # Update instructions if preset changed
+        if new_scene_preset and new_scene_preset != st.session_state.scene_preset:
+            st.session_state.scene_preset = new_scene_preset
+            app_state.scene_instructions = predefined_scenes[new_scene_preset]
+            st.rerun()
+
+        # Scene Instructions label
+        st.markdown('**Scene Instructions**')
+
+        # Scene Instructions text area with enhancement button
+        scene_col1, scene_col2 = st.columns([0.92, 0.08], gap='small')
+        with scene_col1:
+            app_state.scene_instructions = st.text_area(
+                'label',
+                value=app_state.scene_instructions,
+                height=int(TEXTAREA_HEIGHT * 1.5),
+                help='Describe the scene you want in your card',
+                label_visibility='collapsed',
+            )
+        with scene_col2:
+            if st.button(
+                '✨',
+                key='enhance_scene_btn',
+                help='Enhance with AI',
+                use_container_width=True,
+            ):
+                LOGGER.info('Scene enhancement button clicked')
+                st.session_state.enhancing_scene = True
+
+        # Show enhancement proposal if requested
+        if st.session_state.enhancing_scene:
+            LOGGER.info('Entering scene enhancement block')
+            # Only call API if we don't have cached enhanced text
+            if 'scene_enhanced' not in st.session_state:
+                with st.spinner('✨ Enhancing scene description...'):
+                    try:
+                        LOGGER.debug('Calling enhance_text for scene...')
+                        enhanced = asyncio.run(enhance_text('scene', app_state.scene_instructions))
+                        LOGGER.info('Scene enhancement completed.')
+                        if enhanced:
+                            st.session_state.scene_enhanced = enhanced
+                        else:
+                            st.error('Failed to enhance scene description')
+                            st.session_state.enhancing_scene = False
+                    except Exception as e:
+                        st.error(f'Error enhancing scene: {str(e)}')
+                        LOGGER.error(f'Scene enhancement error: {str(e)}', exc_info=True)
+                        st.session_state.enhancing_scene = False
+
+            # Display proposal if we have enhanced text
+            if 'scene_enhanced' in st.session_state:
+                LOGGER.debug('Displaying enhancement proposal for scene')
+                result = display_enhancement_proposal('scene', st.session_state.scene_enhanced)
+                if result is True:
+                    LOGGER.info('Scene enhancement ACCEPTED - updating app_state')
+                    app_state.scene_instructions = st.session_state.scene_enhanced
+                    st.session_state.enhancing_scene = False
+                    del st.session_state.scene_enhanced
+                    LOGGER.debug('Triggering rerun after scene accept')
+                    st.rerun()
+                elif result is False:
+                    LOGGER.info('Scene enhancement DECLINED')
+                    st.session_state.enhancing_scene = False
+                    del st.session_state.scene_enhanced
 
         # Style selection
         st.subheader('🎨 Style')
-        style_preset = st.selectbox(
+        new_style_preset = st.selectbox(
             'Choose a preset style or create your own',
             options=list(predefined_styles.keys()),
-            index=list(predefined_styles.keys()).index(
-                st.session_state.style_preset
-            ),
+            index=list(predefined_styles.keys()).index(st.session_state.style_preset),
             help="Select a predefined style or choose 'Custom' to write your own",
-            key='style_preset_select',
-            on_change=lambda: st.session_state.update(
-                {'style_preset': st.session_state.style_preset_select}
-            ),
         )
-        st.session_state.style_preset = style_preset
 
-        style_default = predefined_styles[style_preset]
-        style_instructions = st.text_area(
-            'Style Instructions',
-            value=style_default,
-            height=TEXTAREA_HEIGHT,
-            help='Describe the artistic style you want',
-        )
+        # Update instructions if preset changed
+        if new_style_preset and new_style_preset != st.session_state.style_preset:
+            st.session_state.style_preset = new_style_preset
+            app_state.style_instructions = predefined_styles[new_style_preset]
+            st.rerun()
+
+        # Style Instructions label
+        st.markdown('**Style Instructions**')
+
+        # Style Instructions text area with enhancement button
+        style_col1, style_col2 = st.columns([0.92, 0.08], gap='small')
+        with style_col1:
+            app_state.style_instructions = st.text_area(
+                'label',
+                value=app_state.style_instructions,
+                height=TEXTAREA_HEIGHT,
+                help='Describe the artistic style you want',
+                label_visibility='collapsed',
+            )
+        with style_col2:
+            if st.button(
+                '✨',
+                key='enhance_style_btn',
+                help='Enhance with AI',
+                use_container_width=True,
+            ):
+                LOGGER.info('Style enhancement button clicked')
+                st.session_state.enhancing_style = True
+
+        # Show enhancement proposal if requested
+        if st.session_state.enhancing_style:
+            LOGGER.info('Entering style enhancement block')
+            # Only call API if we don't have cached enhanced text
+            if 'style_enhanced' not in st.session_state:
+                with st.spinner('✨ Enhancing style description...'):
+                    try:
+                        LOGGER.debug('Calling enhance_text for style...')
+                        enhanced = asyncio.run(enhance_text('style', app_state.style_instructions))
+                        LOGGER.info('Style enhancement completed.')
+                        if enhanced:
+                            st.session_state.style_enhanced = enhanced
+                        else:
+                            st.error('Failed to enhance style description')
+                            st.session_state.enhancing_style = False
+                    except Exception as e:
+                        st.error(f'Error enhancing style: {str(e)}')
+                        LOGGER.error(f'Style enhancement error: {str(e)}', exc_info=True)
+                        st.session_state.enhancing_style = False
+
+            # Display proposal if we have enhanced text
+            if 'style_enhanced' in st.session_state:
+                LOGGER.debug('Displaying enhancement proposal for style')
+                result = display_enhancement_proposal('style', st.session_state.style_enhanced)
+                if result is True:
+                    LOGGER.info('Style enhancement ACCEPTED - updating app_state')
+                    app_state.style_instructions = st.session_state.style_enhanced
+                    st.session_state.enhancing_style = False
+                    del st.session_state.style_enhanced
+                    LOGGER.debug('Triggering rerun after style accept')
+                    st.rerun()
+                elif result is False:
+                    LOGGER.info('Style enhancement DECLINED')
+                    st.session_state.enhancing_style = False
+                    del st.session_state.style_enhanced
 
         # Overlay selection
         st.subheader('✨ Text Overlay')
-        overlay_preset = st.selectbox(
+        new_overlay_preset = st.selectbox(
             'Choose a preset overlay or create your own',
             options=list(predefined_overlays.keys()),
-            index=list(predefined_overlays.keys()).index(
-                st.session_state.overlay_preset
-            ),
+            index=list(predefined_overlays.keys()).index(st.session_state.overlay_preset),
             help="Select a predefined text overlay or choose 'Custom' to write your own",
-            key='overlay_preset_select',
-            on_change=lambda: st.session_state.update(
-                {'overlay_preset': st.session_state.overlay_preset_select}
-            ),
         )
-        st.session_state.overlay_preset = overlay_preset
 
-        overlay_default = predefined_overlays[overlay_preset]
-        overlay_instructions = st.text_area(
+        # Update instructions if preset changed
+        if new_overlay_preset and new_overlay_preset != st.session_state.overlay_preset:
+            st.session_state.overlay_preset = new_overlay_preset
+            app_state.overlay_instructions = predefined_overlays[new_overlay_preset]
+            st.rerun()
+
+        app_state.overlay_instructions = st.text_area(
             'Overlay/Text Instructions',
-            value=overlay_default,
+            value=app_state.overlay_instructions,
             height=TEXTAREA_HEIGHT,
             help='Any text or overlays to add to the image',
         )
@@ -231,34 +428,19 @@ def main():
     # Generate button
     st.markdown('---')
     if st.button('🎨 Generate Card', type='primary', use_container_width=True):
-        if len(family_members) < num_members:
-            st.error(
-                f'Please upload all {num_members} photos before generating!'
-            )
+        if len(app_state.family_members) < num_members:
+            st.error(f'Please upload all {num_members} photos before generating!')
         else:
-            with st.spinner(
-                '✨ Generating your personalized card... This may take a minute.'
-            ):
+            with st.spinner('✨ Generating your personalized card... This may take a minute.'):
                 try:
-                    # Create ProfilePicture objects
-                    profile_pictures = [
-                        ProfilePicture(
-                            image=member['image'],
-                            person=member['person'],
-                            description=member['description'],
-                        )
-                        for member in family_members
-                    ]
-
                     # Generate the card
                     generated_image = asyncio.run(
                         generate_card(
-                            family_members=profile_pictures,
-                            topic=topic,
-                            scene_instructions=scene_instructions,
-                            overlay_instructions=overlay_instructions,
-                            style_instructions=style_instructions,
-                            expand_profile_descriptions=expand_descriptions,
+                            family_members=app_state.family_members,
+                            topic=app_state.topic,
+                            scene_instructions=app_state.scene_instructions,
+                            overlay_instructions=app_state.overlay_instructions,
+                            style_instructions=app_state.style_instructions,
                         )
                     )
 

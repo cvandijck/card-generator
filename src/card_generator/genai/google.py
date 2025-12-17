@@ -16,17 +16,22 @@ from google.genai.types import (
 from PIL.Image import Image
 from pydantic import BaseModel, Field
 
+from card_generator.genai import GEMINI_API_KEY_KEY
+
 LOGGER = logging.getLogger(__name__)
 
-AspectRatio = Literal[
-    '1:1', '2:3', '3:2', '3:4', '4:3', '4:5', '5:4', '9:16', '16:9', '21:9'
-]
+AspectRatio = Literal['1:1', '2:3', '3:2', '3:4', '4:3', '4:5', '5:4', '9:16', '16:9', '21:9']
 Resolution = Literal['1K', '2K', '4K']
 
 
 class GeminiModelName(StrEnum):
+    GEMMA_3_27B = 'gemma-3-27b'
     GEMINI_2_5_FLASH = 'gemini-2.5-flash'
     GEMINI_3_PRO_IMAGE_PREVIEW = 'gemini-3-pro-image-preview'
+
+
+DEFAULT_TEXT_MODEL_NAME = GeminiModelName.GEMMA_3_27B
+DEFAULT_IMAGE_MODEL_NAME = GeminiModelName.GEMINI_3_PRO_IMAGE_PREVIEW
 
 
 class GeminiModelParameters(BaseModel):
@@ -35,17 +40,15 @@ class GeminiModelParameters(BaseModel):
 
 class GeminiModel(BaseModel):
     name: GeminiModelName
-    parameters: GeminiModelParameters = Field(
-        default_factory=GeminiModelParameters
-    )
+    parameters: GeminiModelParameters = Field(default_factory=GeminiModelParameters)
 
 
 def create_client(api_key: Optional[str] = None):
     if not api_key:
-        api_key = os.environ.get('GEMINI_API_KEY')
+        api_key = os.environ.get(GEMINI_API_KEY_KEY)
 
     if not api_key:
-        raise ValueError('GEMINI_API_KEY environment variable not set.')
+        raise ValueError(f'{GEMINI_API_KEY_KEY} environment variable not set.')
 
     return Client(api_key=api_key)
 
