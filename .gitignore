@@ -1,3 +1,6 @@
+# Environments variables
+.env*
+
 # UV
 uv.lock
 

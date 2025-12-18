@@ -11,7 +11,6 @@ from dotenv import load_dotenv
 from PIL import Image
 from pydantic import BaseModel, ConfigDict, Field
 
-from card_generator.genai import GEMINI_API_KEY_KEY
 from card_generator.genai.tools.card import generate_card
 from card_generator.genai.tools.scene import enhance_scene_instructions
 from card_generator.genai.tools.style import enhance_style_instructions
@@ -27,8 +26,6 @@ SESSION_APP_STATE = 'app_state'
 SESSION_SCENE_PRESET = 'scene_preset'
 SESSION_STYLE_PRESET = 'style_preset'
 SESSION_OVERLAY_PRESET = 'overlay_preset'
-SESSION_ENHANCING_SCENE = 'enhancing_scene'
-SESSION_ENHANCING_STYLE = 'enhancing_style'
 SESSION_CURRENT_MEMBER_INDEX = 'current_member_index'
 SESSION_SCENE_ENHANCED = 'scene_enhanced'
 SESSION_STYLE_ENHANCED = 'style_enhanced'
@@ -407,18 +404,6 @@ def render_generated_image():
 def main():
     """Main function to run the Streamlit app."""
     cached_configure_logging()
-
-    st.sidebar.title('🔑 API Key Configuration')
-    gemini_key = st.sidebar.text_input(
-        label='Gemini API Key',
-        value=os.getenv(GEMINI_API_KEY_KEY, ''),
-        key=GEMINI_API_KEY_KEY,
-        type='password',
-    )
-
-    if not gemini_key:
-        st.sidebar.error('Please enter your Gemini API Key to continue.')
-
     app_state = get_app_state()
 
     # Page configuration
