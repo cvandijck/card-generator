@@ -284,6 +284,7 @@ def render_customization_inputs():
         elif result is False:
             LOGGER.info('Scene enhancement DECLINED')
             del st.session_state[SESSION_SCENE_ENHANCED]
+            st.rerun()
 
     # Style selection
     st.subheader('🎨 Style')
@@ -340,6 +341,7 @@ def render_customization_inputs():
         elif result is False:
             LOGGER.info('Style enhancement DECLINED')
             del st.session_state[SESSION_STYLE_ENHANCED]
+            st.rerun()
 
     # Overlay selection
     st.subheader('🔤 Text Overlay')
