@@ -69,11 +69,6 @@ class FamilyMemberInput(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
 
-    @property
-    def is_complete(self) -> bool:
-        """Check if all fields are filled."""
-        return self.image is not None and bool(self.name) and bool(self.description)
-
 
 def get_app_state() -> AppState:
     """Get or initialize the app state from session."""
@@ -435,7 +430,7 @@ def main():
                     try:
                         LOGGER.debug('Calling enhance_style_instructions...')
                         enhanced = asyncio.run(
-                            enhance_style_instructions(app_state.style_instructions)
+                            enhance_style_instructions(instructions=app_state.style_instructions)
                         )
                         LOGGER.info('Style enhancement completed.')
                         if enhanced:
@@ -493,63 +488,45 @@ def main():
     if st.button('🎨 Generate Card', type='primary', width='stretch'):
         # Validate all photos are uploaded
         family_member_list = st.session_state[SESSION_FAMILY_MEMBERS]
-        if not all(member.is_complete for member in family_member_list):
+        if any(member.image is None for member in family_member_list):
             st.error(f'Please upload all {num_members} photos before generating!')
-        else:
-            # Populate family_members from session state
-            app_state.family_members = []
-            for j in range(num_members):
-                upload_key = SESSION_UPLOAD_FMT.format(j)
-                name_key = SESSION_NAME_FMT.format(j)
-                desc_key = SESSION_DESC_FMT.format(j)
+            return
 
-                if upload_key in st.session_state and st.session_state[upload_key] is not None:
-                    try:
-                        image = Image.open(st.session_state[upload_key])
-                        person_name = st.session_state.get(name_key, f'Person {j + 1}')
-                        description = st.session_state.get(desc_key, '')
+        app_state.family_members = [
+            ProfilePicture(
+                image=member.image,
+                person=member.name or f'Person {idx + 1}',
+                description=member.description or '',
+            )
+            for idx, member in enumerate(family_member_list)
+        ]
 
-                        app_state.family_members.append(
-                            ProfilePicture(
-                                image=image,
-                                person=person_name,
-                                description=description,
-                            )
-                        )
-                    except Exception as e:
-                        st.error(f'Error loading image for member {j + 1}: {str(e)}')
-                        break
-
-            with st.spinner('✨ Generating your personalized card... This may take a minute.'):
-                try:
-                    # Generate the card
-                    generated_image = asyncio.run(
-                        generate_card(
-                            family_members=app_state.family_members,
-                            topic=app_state.topic,
-                            scene_instructions=app_state.scene_instructions,
-                            overlay_instructions=app_state.overlay_instructions,
-                            style_instructions=app_state.style_instructions,
-                        )
+        with st.spinner('✨ Generating your personalized card... This may take a minute.'):
+            try:
+                # Generate the card
+                generated_image = asyncio.run(
+                    generate_card(
+                        family_members=app_state.family_members,
+                        topic=app_state.topic,
+                        scene_instructions=app_state.scene_instructions,
+                        overlay_instructions=app_state.overlay_instructions,
+                        style_instructions=app_state.style_instructions,
                     )
-                    st.session_state[SESSION_GENERATED_IMAGE] = generated_image
+                )
+                st.session_state[SESSION_GENERATED_IMAGE] = generated_image
 
-                    # Display the result
-                    st.success('🎉 Card generated successfully!')
+                # Display the result
+                st.success('🎉 Card generated successfully!')
 
-                except Exception as e:
-                    st.error(f'❌ Error generating card: {str(e)}')
-                    st.exception(e)
+            except Exception as e:
+                st.error(f'❌ Error generating card: {str(e)}')
+                st.exception(e)
 
     generated_image = st.session_state.get(SESSION_GENERATED_IMAGE)
     if generated_image:
         # Show the generated image
         st.header('🖼️ Your Generated Card')
-        st.image(
-            generated_image,
-            caption='Generated Holiday Card',
-            width='stretch',
-        )
+        st.image(generated_image, caption='Generated Holiday Card', width='stretch')
 
         # Download button
         buf = io.BytesIO()
@@ -561,7 +538,7 @@ def main():
             data=byte_im,
             file_name='holiday_card.png',
             mime='image/png',
-            use_container_width=True,
+            width='stretch',
         )
 
     # Footer
