@@ -1,5 +1,4 @@
 scenes:
-  Custom: ""
   Christmas Sled Ride: |
     The family needs to be dressed in Christmas sweaters and are sliding down a snowy hill on a sled.
     The sled is going very fast and there is snow flying everywhere.
@@ -30,9 +29,9 @@ scenes:
     Some are wobbling and holding hands for support while others glide gracefully.
     Snowflakes are gently falling and everyone is bundled up in warm winter clothing.
     A small warming hut with smoke coming from the chimney is visible in the background.
+  Custom: ""
 
 styles:
-  Custom: ""
   Cartoon/Comic: "Use a vibrant cartoon style similar to classic comic books with bold outlines and bright colors."
   Watercolor: "Use a soft watercolor painting style with gentle brushstrokes and flowing colors."
   Pixar Animation: "Use a 3D animated style similar to Pixar movies with smooth rendering and expressive characters."
@@ -41,9 +40,9 @@ styles:
   Oil Painting: "Use a classical oil painting style with rich textures and artistic brushwork."
   Pop Art: "Use a bold pop art style with bright colors, strong contrasts, and comic-like elements."
   Vintage: "Use a vintage photograph style with slightly muted colors and nostalgic feel."
+  Custom: ""
 
 overlays:
-  Custom: ""
   Happy Holidays!: 'Overlay the image with the text "Happy Holidays!" in a playful, festive font at the top.'
   Merry Christmas!: 'Overlay the image with the text "Merry Christmas!" in an elegant script font with sparkles.'
   Happy Birthday!: 'Overlay the image with the text "Happy Birthday!" in colorful, fun letters.'
@@ -51,3 +50,4 @@ overlays:
   Happy New Year!: 'Overlay the image with the text "Happy New Year!" with firework effects around it.'
   Warmest Wishes: 'Overlay the image with the text "Warmest Wishes" in a cozy, handwritten style.'
   No Text: "No text overlay needed."
+  Custom: ""
