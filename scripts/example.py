@@ -34,33 +34,27 @@ async def main():
     pictures = [
         ProfilePicture.from_filepath(
             path=INPUT_DIR / 'christophe.jpg',
-            person='Christophe',
             description='Father of the family',
         ),
         ProfilePicture.from_filepath(
             path=INPUT_DIR / 'sara.jpg',
-            person='Sara',
             description='Mother of the family',
         ),
         ProfilePicture.from_filepath(
             path=INPUT_DIR / 'lou.jpg',
-            person='Lou',
             description='Oldest son, 5 years old',
         ),
         ProfilePicture.from_filepath(
             path=INPUT_DIR / 'mil.jpg',
-            person='Mil',
             description='Youngest son, 3 years old',
         ),
     ]
 
     image = await generate_card(
         family_members=pictures,
-        topic='',
         scene_instructions=SCENE_INSTRUCTIONS,
         overlay_instructions=OVERLAY_INSTRUCTIONS,
         style_instructions='Use the cartoon style of suske and wiske comics.',
-        expand_profile_descriptions=True,
     )
     image.save(OUTPUT_DIR / 'generated_image.png')
 
