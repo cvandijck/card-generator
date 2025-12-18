@@ -16,13 +16,13 @@ _DEFAULT_SCENE_MODEL = GeminiModel(name=DEFAULT_TEXT_MODEL_NAME)
 
 
 async def enhance_scene_instructions(
-    instruction: str,
+    instructions: str,
     model: GeminiModel = _DEFAULT_SCENE_MODEL,
     client: Optional[Client] = None,
 ) -> str:
     LOGGER.info('Generating scene description...')
-    LOGGER.debug(f'Input scene instruction: {instruction}')
-    prompt = PROMPT.format(instruction=instruction)
+    LOGGER.debug(f'Input scene instruction: {instructions}')
+    prompt = PROMPT.format(instructions=instructions)
     description = await generate_text_response(prompt=prompt, model=model, client=client)
 
     LOGGER.debug(f'Generated scene description: {description}')

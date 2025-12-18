@@ -16,13 +16,16 @@ _DEFAULT_STYLE_MODEL = GeminiModel(name=DEFAULT_TEXT_MODEL_NAME)
 
 
 async def enhance_style_instructions(
-    instruction: str,
+    instructions: str,
+    constraints: str = 'N/A',
     model: GeminiModel = _DEFAULT_STYLE_MODEL,
     client: Optional[Client] = None,
 ) -> str:
     LOGGER.info('Generating style description...')
-    LOGGER.debug(f'Input style instruction: {instruction}')
-    prompt = PROMPT.format(instruction=instruction)
+    LOGGER.debug(f'Input style instruction: {instructions}')
+    LOGGER.debug(f'Input constraints: {constraints}')
+
+    prompt = PROMPT.format(instructions=instructions, constraints=constraints)
     description = await generate_text_response(prompt=prompt, model=model, client=client)
 
     LOGGER.debug(f'Generated style description: {description}')

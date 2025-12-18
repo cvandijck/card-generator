@@ -46,9 +46,13 @@ Output Requirements:
 - Ensure the style complements greeting card aesthetics
 - Maintain the user's original intent while adding technical precision
 
-<UserProvidedStyleInstruction>
-{instruction}
-</UserProvidedStyleInstruction>
+<UserProvidedStyleInstructions>
+{instructions}
+</UserProvidedStyleInstructions>
+
+<UserProvidedConstraints>
+{constraints}
+</UserProvidedConstraints>
 
 Enhanced style description:
 """

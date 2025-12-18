@@ -38,9 +38,13 @@ Output Requirements:
 - Maintain the user's original intent while adding richness
 - Provide clear, actionable guidance for image generation
 
-<UserProvidedSceneInstruction>
-{instruction}
-</UserProvidedSceneInstruction>
+<UserProvidedSceneInstructions>
+{instructions}
+</UserProvidedSceneInstructions>
+
+<UserProvidedConstraints>
+{constraints}
+</UserProvidedConstraints>
 
 Enhanced scene description:
 """
