@@ -54,7 +54,6 @@ class AppState(BaseModel):
     family_members: list[ProfilePicture] = Field(default_factory=list)
 
     # Generation instructions
-    topic: str = ''
     scene_instructions: str = ''
     style_instructions: str = ''
     overlay_instructions: str = ''
@@ -243,11 +242,6 @@ def render_customization_inputs():
     predefined_overlays: dict[str, str] = config['overlays']
 
     st.header('⚙️ Customize Your Card')
-    app_state.topic = st.text_input(
-        'Card Topic/Theme',
-        value=app_state.topic or 'Holiday',
-        help='The theme of your card (e.g., Holiday, Birthday, Christmas)',
-    )
 
     # Scene selection
     st.subheader('🎬 Scene')
@@ -470,7 +464,6 @@ def main():
                 generated_image = asyncio.run(
                     generate_card(
                         family_members=app_state.family_members,
-                        topic=app_state.topic,
                         scene_instructions=app_state.scene_instructions,
                         overlay_instructions=app_state.overlay_instructions,
                         style_instructions=app_state.style_instructions,

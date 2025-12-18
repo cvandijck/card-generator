@@ -19,7 +19,6 @@ _DEFAULT_MODEL = GeminiModel(name=DEFAULT_IMAGE_MODEL_NAME)
 
 async def generate_card(
     family_members: list[ProfilePicture],
-    topic: str,
     scene_instructions: str,
     overlay_instructions: str = 'N/A',
     style_instructions: str = 'N/A',
@@ -31,7 +30,6 @@ async def generate_card(
     family_member_descriptions = '\n'.join([f'- {str(pic)}' for pic in family_members])
 
     prompt = PROMPT.format(
-        topic=topic,
         family_members_descriptions=family_member_descriptions,
         scene_instructions=scene_instructions,
         overlay_instructions=overlay_instructions,

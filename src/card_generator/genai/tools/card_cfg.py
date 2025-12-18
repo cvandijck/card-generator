@@ -3,7 +3,7 @@
 PROMPT = """
 You are an expert at creating personalized greeting cards by generating family images based on provided pictures and descriptions.
 
-Task: Generate a {topic} card image featuring the family members shown in the provided images.
+Task: Generate a image for a greeting card featuring the family members shown in the provided images.
 
 === FAMILY MEMBERS ===
 The following individuals must appear in the image (in order of provided pictures):
