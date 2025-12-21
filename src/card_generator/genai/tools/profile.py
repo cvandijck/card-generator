@@ -51,7 +51,7 @@ async def enhance_profile_descriptions(
     ]
     expanded_descriptions = await asyncio.gather(*coroutines)
     enhanced_profiles = [
-        ProfilePicture(image=profile.image, description=description)
+        ProfilePicture(image=profile.image, person=profile.person, description=description)
         for profile, description in zip(profiles, expanded_descriptions)
     ]
     return enhanced_profiles

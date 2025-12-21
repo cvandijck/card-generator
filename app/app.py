@@ -62,6 +62,7 @@ class FamilyMemberInput(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     image: Optional[Image.Image] = None
+    name: Optional[str] = None
     description: Optional[str] = None
 
 
@@ -188,9 +189,19 @@ def render_family_member_inputs():
             width=250,
         )
 
-    # Input field below the image
+    # Input fields below the image
+    # Name input - key parameter handles session state automatically
+    name = st.text_input(
+        'Name',
+        value=current_member.name,
+        key=SESSION_NAME_FMT.format(current_member_idx),
+        placeholder='Enter name...',
+    )
+    current_member.name = name
+
+    # Description input with placeholder
     description = st.text_area(
-        label='Description',
+        'Description',
         value=current_member.description,
         placeholder='Describe this family member...',
         key=SESSION_DESC_FMT.format(current_member_idx),
@@ -428,6 +439,7 @@ def main():
         app_state.family_members = [
             ProfilePicture(
                 image=member.image,
+                person=member.name or f'Person {idx + 1}',
                 description=member.description or '',
             )
             for idx, member in enumerate(family_member_list)
