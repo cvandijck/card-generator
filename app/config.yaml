@@ -40,6 +40,7 @@ styles:
   Oil Painting: "Use a classical oil painting style with rich textures and artistic brushwork."
   Pop Art: "Use a bold pop art style with bright colors, strong contrasts, and comic-like elements."
   Vintage: "Use a vintage photograph style with slightly muted colors and nostalgic feel."
+  Caricature: "Use an exaggerated caricature style with humorous proportions and playful expressions."
   Custom: ""
 
 overlays:
