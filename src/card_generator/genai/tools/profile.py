@@ -11,7 +11,7 @@ from card_generator.genai.google import (
     generate_text_response,
 )
 from card_generator.genai.tools.profile_cfg import PROMPT
-from card_generator.image.profile import ProfilePicture
+from card_generator.image.profile import Profile
 
 LOGGER = logging.getLogger(__name__)
 
@@ -36,10 +36,10 @@ async def enhance_profile_description(
 
 
 async def enhance_profile_descriptions(
-    profiles: list[ProfilePicture],
+    profiles: list[Profile],
     model: GeminiModel = _DEFAULT_PROFILE_MODEL,
     client: Optional[Client] = None,
-) -> list[ProfilePicture]:
+) -> list[Profile]:
     coroutines = [
         enhance_profile_description(
             image=profile.image,
@@ -51,7 +51,7 @@ async def enhance_profile_descriptions(
     ]
     expanded_descriptions = await asyncio.gather(*coroutines)
     enhanced_profiles = [
-        ProfilePicture(image=profile.image, person=profile.person, description=description)
+        Profile(image=profile.image, name=profile.name, description=description)
         for profile, description in zip(profiles, expanded_descriptions)
     ]
     return enhanced_profiles

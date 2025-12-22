@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 
 from card_generator.genai.tools.card import generate_card
 from card_generator.genai.tools.profile import enhance_profile_descriptions
-from card_generator.image.profile import ProfilePicture
+from card_generator.image.profile import Profile
 from card_generator.logging import configure_logging
 
 load_dotenv()
@@ -71,29 +71,29 @@ async def main():
 
     # define the input
     pictures = [
-        ProfilePicture.from_filepath(
+        Profile.from_filepath(
             path=members_dir / 'christophe2.jpg',
-            person='Christophe',
+            name='Christophe',
             description='Team lead, ten years older then the other developers, trying to manage their energy',
         ),
-        ProfilePicture.from_filepath(
+        Profile.from_filepath(
             path=members_dir / 'sam2.jpg',
-            person='Sam',
+            name='Sam',
             description='Most senior developer, keeps a cool head, always enjoying a healthy snack of almonds on the slopes',
         ),
-        ProfilePicture.from_filepath(
+        Profile.from_filepath(
             path=members_dir / 'damon2.jpg',
-            person='Damon',
+            name='Damon',
             description='Developer. He is paraplegic, but a great skier using an adaptive sit-ski.',
         ),
-        ProfilePicture.from_filepath(
+        Profile.from_filepath(
             path=members_dir / 'samuel.png',
-            person='Samuel',
+            name='Samuel',
             description='Junior developer. Loves fashion and has very noticible black moustache and wild black hair.',
         ),
-        ProfilePicture.from_filepath(
+        Profile.from_filepath(
             path=members_dir / 'charoun.jpg',
-            person='Charoun',
+            name='Charoun',
             description='Business analyst. Greek and proudly so. Very stylish with a charming smile.',
         ),
     ]
@@ -101,13 +101,14 @@ async def main():
     updated_pictures = await enhance_profile_descriptions(pictures)
 
     for pic in updated_pictures:
-        logging.info(f'Enhanced profile for {pic.person}: {pic.description}')
+        logging.info(f'Enhanced profile for {pic.name}: {pic.description}')
 
     image = await generate_card(
-        family_members=updated_pictures,
+        profiles=updated_pictures,
         scene_instructions=SCENE_INSTRUCTIONS,
         style_instructions=STYLE_INSTRUCTIONS,
         overlay_instructions=OVERLAY_INSTRUCTIONS,
+        resolution='2K',
     )
     image.save(OUTPUT_DIR / f'{datetime.datetime.now().strftime("%Y%m%d_%H%M%S")}.png')
 

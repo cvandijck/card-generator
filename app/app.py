@@ -9,19 +9,21 @@ import streamlit as st
 import yaml
 from dotenv import load_dotenv
 from PIL import Image
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict
 
 from card_generator.genai.tools.card import generate_card
 from card_generator.genai.tools.scene import enhance_scene_instructions
 from card_generator.genai.tools.style import enhance_style_instructions
-from card_generator.image.profile import ProfilePicture
+from card_generator.image.profile import Profile
 from card_generator.logging import configure_logging, convert_logging_level
+from card_generator.state import AppState
 
 # UI Configuration
 TEXTAREA_HEIGHT = 150
 LOGGER = logging.getLogger(__name__)
 
 # Session state keys
+NUM_MEMBERS = 'num_members'
 SESSION_APP_STATE = 'app_state'
 SESSION_SCENE_PRESET = 'scene_preset'
 SESSION_STYLE_PRESET = 'style_preset'
@@ -29,7 +31,7 @@ SESSION_OVERLAY_PRESET = 'overlay_preset'
 SESSION_CURRENT_MEMBER_INDEX = 'current_member_index'
 SESSION_SCENE_ENHANCED = 'scene_enhanced'
 SESSION_STYLE_ENHANCED = 'style_enhanced'
-SESSION_FAMILY_MEMBERS = 'family_members'
+SESSION_MEMBERS = 'members'
 SESSION_GENERATED_IMAGE = 'generated_image'
 
 # Session state key formats (for dynamic keys)
@@ -42,28 +44,14 @@ SESSION_DESC_FMT = 'desc_{}'
 load_dotenv()
 
 
-class AppState(BaseModel):
-    """Core application state."""
+class PersonInput(BaseModel):
+    """Input data for a person."""
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
-    # Family member profile data
-    family_members: list[ProfilePicture] = Field(default_factory=list)
-
-    # Generation instructions
-    scene_instructions: str = ''
-    style_instructions: str = ''
-    overlay_instructions: str = ''
-
-
-class FamilyMemberInput(BaseModel):
-    """Input data for a family member."""
-
-    model_config = ConfigDict(arbitrary_types_allowed=True)
-
-    image: Optional[Image.Image] = None
     name: Optional[str] = None
     description: Optional[str] = None
+    image: Optional[Image.Image] = None
 
 
 def get_app_state() -> AppState:
@@ -111,7 +99,30 @@ def load_config():
     return normalize_config(config)
 
 
-def display_enhancement_proposal(field_key: str, proposed_text: str) -> Optional[bool]:
+def sync_member_profiles():
+    app_state = get_app_state()
+
+    member_profile_list: list[PersonInput] = st.session_state.get(SESSION_MEMBERS, [])
+    num_members = st.session_state.get(NUM_MEMBERS, 0)
+
+    required_members = member_profile_list[:num_members]
+
+    if any(member.image is None for member in required_members):
+        st.error(f'Please upload all {len(required_members)} photos before generating!')
+        return
+
+    app_state.member_profiles = [
+        Profile(
+            # image is ensured to be not None above
+            image=member.image,  # type: ignore
+            name=member.name or f'Person {idx + 1}',
+            description=member.description or '',
+        )
+        for idx, member in enumerate(required_members)
+    ]
+
+
+def render_enhancement_proposal(field_key: str, proposed_text: str) -> Optional[bool]:
     """Display enhancement proposal with accept/decline buttons.
 
     Returns True if accepted, False if declined.
@@ -133,40 +144,40 @@ def display_enhancement_proposal(field_key: str, proposed_text: str) -> Optional
     return None
 
 
-def render_family_member_inputs():
-    st.header('📸 Upload Family Photos')
+def render_member_inputs():
+    st.header('📸 Upload Photos')
 
-    # Number of family members
+    # Number of people
     num_members = st.number_input(
-        label='Number of family members',
+        label='Number of people in the card',
         min_value=1,
         max_value=10,
         value=2,
         step=1,
+        key=NUM_MEMBERS,
     )
 
-    # Reset current_member_index if num_members changed
     if SESSION_CURRENT_MEMBER_INDEX not in st.session_state:
         st.session_state[SESSION_CURRENT_MEMBER_INDEX] = 0
 
     if st.session_state.get(SESSION_CURRENT_MEMBER_INDEX, 0) >= num_members:
-        st.session_state[SESSION_CURRENT_MEMBER_INDEX] = 0
+        st.session_state[SESSION_CURRENT_MEMBER_INDEX] = num_members - 1
 
     # Initialize session state for all members upfront (for data persistence)
-    if SESSION_FAMILY_MEMBERS not in st.session_state:
-        st.session_state[SESSION_FAMILY_MEMBERS] = []
+    if SESSION_MEMBERS not in st.session_state:
+        st.session_state[SESSION_MEMBERS] = []
 
-    family_member_list: list[FamilyMemberInput] = st.session_state[SESSION_FAMILY_MEMBERS]
-    if len(family_member_list) < num_members:
-        for _ in range(len(family_member_list), num_members):
-            family_member_list.append(FamilyMemberInput())
+    member_profile_list: list[PersonInput] = st.session_state[SESSION_MEMBERS]
+    if len(member_profile_list) < num_members:
+        for _ in range(len(member_profile_list), num_members):
+            member_profile_list.append(PersonInput())
 
     # Carousel mode: show one member at a time with navigation
     st.markdown('---')
 
     # Display current member
     current_member_idx = st.session_state[SESSION_CURRENT_MEMBER_INDEX]
-    current_member: FamilyMemberInput = family_member_list[current_member_idx]
+    current_member: PersonInput = member_profile_list[current_member_idx]
 
     # File uploader
     uploaded_file = st.file_uploader(
@@ -181,29 +192,23 @@ def render_family_member_inputs():
 
     if current_member.image:
         container = st.container(horizontal=True, horizontal_alignment='center')
-        container.image(
-            current_member.image,
-            caption=st.session_state.get(
-                SESSION_NAME_FMT.format(current_member_idx), f'Member {current_member_idx + 1}'
-            ),
-            width=250,
-        )
+        container.image(current_member.image, caption=current_member.name, width=250)
 
     # Input fields below the image
     # Name input - key parameter handles session state automatically
     name = st.text_input(
-        'Name',
+        label='Name',
         value=current_member.name,
-        key=SESSION_NAME_FMT.format(current_member_idx),
         placeholder='Enter name...',
+        key=SESSION_NAME_FMT.format(current_member_idx),
     )
     current_member.name = name
 
     # Description input with placeholder
     description = st.text_area(
-        'Description',
+        label='Description',
         value=current_member.description,
-        placeholder='Describe this family member...',
+        placeholder='Describe this person...',
         key=SESSION_DESC_FMT.format(current_member_idx),
         height=TEXTAREA_HEIGHT,
     )
@@ -218,7 +223,7 @@ def render_family_member_inputs():
             st.rerun()
     with nav_col2:
         st.markdown(
-            f'**Family Member {current_member_idx + 1} of {num_members}**',
+            f'**Person {current_member_idx + 1} of {num_members}**',
             text_alignment='center',
         )
     with nav_col3:
@@ -277,15 +282,22 @@ def render_customization_inputs():
     if enhance_scene:
         LOGGER.debug('Enhancing scene description...')
         with st.spinner('✨ Enhancing scene description...'):
+            # Gather profile descriptions for context
+            sync_member_profiles()
+
             st.session_state[SESSION_SCENE_ENHANCED] = asyncio.run(
-                enhance_scene_instructions(app_state.scene_instructions)
+                enhance_scene_instructions(
+                    instructions=app_state.scene_instructions,
+                    style_instructions=app_state.style_instructions,
+                    profile_descriptions=app_state.profile_descriptions,
+                )
             )
 
     # Display proposal if we have enhanced text
     enhanced_scene = st.session_state.get(SESSION_SCENE_ENHANCED)
     if enhanced_scene:
         LOGGER.debug('Displaying enhancement proposal for scene')
-        result = display_enhancement_proposal('scene', enhanced_scene)
+        result = render_enhancement_proposal('scene', enhanced_scene)
         if result:
             LOGGER.info('Scene enhancement ACCEPTED - updating app_state')
             app_state.scene_instructions = enhanced_scene
@@ -334,15 +346,20 @@ def render_customization_inputs():
     if enhance_style:
         LOGGER.debug('Enhancing style description...')
         with st.spinner('✨ Enhancing style description...'):
+            sync_member_profiles()
             st.session_state[SESSION_STYLE_ENHANCED] = asyncio.run(
-                enhance_style_instructions(instructions=app_state.style_instructions)
+                enhance_style_instructions(
+                    instructions=app_state.style_instructions,
+                    scene_instructions=app_state.scene_instructions,
+                    profile_descriptions=app_state.profile_descriptions,
+                )
             )
 
     # Display proposal if we have enhanced text
     enhanced_style = st.session_state.get(SESSION_STYLE_ENHANCED)
     if enhanced_style:
         LOGGER.debug('Displaying enhancement proposal for style')
-        result = display_enhancement_proposal('style', enhanced_style)
+        result = render_enhancement_proposal('style', enhanced_style)
         if result:
             LOGGER.info('Style enhancement ACCEPTED - updating app_state')
             app_state.style_instructions = enhanced_style
@@ -423,7 +440,7 @@ def main():
     # Main content area
     col1, col2 = st.columns([1, 1], gap='large')
     with col1:
-        render_family_member_inputs()
+        render_member_inputs()
     with col2:
         render_customization_inputs()
 
@@ -431,26 +448,14 @@ def main():
     st.markdown('---')
     if st.button('🎨 Generate Card', type='primary', width='stretch'):
         # Validate all photos are uploaded
-        family_member_list = st.session_state[SESSION_FAMILY_MEMBERS]
-        if any(member.image is None for member in family_member_list):
-            st.error(f'Please upload all {len(family_member_list)} photos before generating!')
-            return
-
-        app_state.family_members = [
-            ProfilePicture(
-                image=member.image,
-                person=member.name or f'Person {idx + 1}',
-                description=member.description or '',
-            )
-            for idx, member in enumerate(family_member_list)
-        ]
+        sync_member_profiles()
 
         with st.spinner('✨ Generating your personalized card... This may take a minute.'):
             try:
                 # Generate the card
                 generated_image = asyncio.run(
                     generate_card(
-                        family_members=app_state.family_members,
+                        profiles=app_state.member_profiles,
                         scene_instructions=app_state.scene_instructions,
                         overlay_instructions=app_state.overlay_instructions,
                         style_instructions=app_state.style_instructions,

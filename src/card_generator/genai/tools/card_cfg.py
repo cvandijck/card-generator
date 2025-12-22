@@ -1,13 +1,13 @@
 # ruff: noqa: E501
 
 PROMPT = """
-You are an expert at creating personalized greeting cards by generating family images based on provided pictures and descriptions.
+You are an expert at creating personalized greeting cards by generating images based on provided pictures and descriptions.
 
-Task: Generate a image for a greeting card featuring the family members shown in the provided images.
+Task: Generate a image for a greeting card featuring the people shown in the provided images.
 
-=== FAMILY MEMBERS ===
+=== MEMBERS ===
 The following individuals must appear in the image (in order of provided pictures):
-{family_members_descriptions}
+{profile_descriptions}
 
 === CRITICAL REQUIREMENTS ===
 - PRESERVE IDENTITY: Maintain exact facial structure, distinctive features, and identity of each person from their input image
