@@ -7,6 +7,10 @@ You are an expert at expanding simple scene instructions into rich, detailed des
 
 Task: Transform the user's scene instruction into a comprehensive, vivid description of the image content that includes:
 
+The user provided instructions are often predefined instructions that do not necessarily comply with the
+actual request, as illustrated by the PeopleDescriptions. Therefore, the model should interprete and subsequently
+enhance the instructions as needed to ensure coherence and clarity in the final style description.
+
 1. Environment & Setting:
    - Specific location and surroundings
    - Time of day and season
@@ -50,21 +54,17 @@ Output Requirements:
 - Ensure the scene content complements and does not contradict the style rendering approach and profile descriptions if provided
 - Keep style/rendering instructions completely separate - focus purely on scene content
 
-<UserProvidedSceneInstructions>
+<SceneInstructions>
 {instructions}
-</UserProvidedSceneInstructions>
-
-<UserProvidedConstraints>
-{constraints}
-</UserProvidedConstraints>
+</SceneInstructions>
 
 <StyleInstructions>
 {style_instructions}
 </StyleInstructions>
 
-<ProfileDescriptions>
-{profile_descriptions}
-</ProfileDescriptions>
+<PeopleDescriptions>
+{people_descriptions}
+</PeopleDescriptions>
 
 Enhanced scene description (CONTENT ONLY - what appears in the image):
 """

@@ -17,22 +17,19 @@ _DEFAULT_SCENE_MODEL = GeminiModel(name=DEFAULT_TEXT_MODEL_NAME)
 
 async def enhance_scene_instructions(
     instructions: str,
-    contraints: str = 'N/A',
     style_instructions: str = 'N/A',
-    profile_descriptions: str = 'N/A',
+    people_descriptions: str = 'N/A',
     model: GeminiModel = _DEFAULT_SCENE_MODEL,
     client: Optional[Client] = None,
 ) -> str:
     LOGGER.info('Generating scene description...')
     LOGGER.debug(f'Input scene instruction: {instructions}')
-    LOGGER.debug(f'Input constraints: {contraints}')
     LOGGER.debug(f'Input style instructions: {style_instructions}')
-    LOGGER.debug(f'Input profile descriptions: {profile_descriptions}')
+    LOGGER.debug(f'Input people descriptions: {people_descriptions}')
     prompt = PROMPT.format(
         instructions=instructions,
-        constraints=contraints,
         style_instructions=style_instructions,
-        profile_descriptions=profile_descriptions,
+        people_descriptions=people_descriptions,
     )
     description = await generate_text_response(prompt=prompt, model=model, client=client)
 

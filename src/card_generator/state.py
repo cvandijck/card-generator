@@ -9,7 +9,7 @@ class AppState(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     # Member profile data
-    member_profiles: list[Profile] = []
+    people_profiles: list[Profile] = []
 
     # Generation instructions
     scene_instructions: str = ''
@@ -17,5 +17,5 @@ class AppState(BaseModel):
     overlay_instructions: str = ''
 
     @property
-    def profile_descriptions(self) -> str:
-        return describe_profiles(self.member_profiles)
+    def people_descriptions(self) -> str:
+        return describe_profiles(self.people_profiles)

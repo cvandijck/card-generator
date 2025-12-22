@@ -12,6 +12,10 @@ from PIL import Image
 from pydantic import BaseModel, ConfigDict
 
 from card_generator.genai.tools.card import generate_card
+from card_generator.genai.tools.profile import (
+    enhance_profile_description,
+    enhance_profile_descriptions,
+)
 from card_generator.genai.tools.scene import enhance_scene_instructions
 from card_generator.genai.tools.style import enhance_style_instructions
 from card_generator.image.profile import Profile
@@ -38,6 +42,8 @@ SESSION_GENERATED_IMAGE = 'generated_image'
 SESSION_UPLOAD_FMT = 'upload_{}'
 SESSION_NAME_FMT = 'name_{}'
 SESSION_DESC_FMT = 'desc_{}'
+SESSION_PROFILE_ENHANCED_FMT = 'profile_enhanced_{}'
+SESSION_ALL_PROFILES_ENHANCED = 'all_profiles_enhanced'
 
 
 # Load env
@@ -99,7 +105,8 @@ def load_config():
     return normalize_config(config)
 
 
-def sync_member_profiles():
+def sync_member_profiles() -> bool:
+    """Sync member profiles to app state. Returns True if successful."""
     app_state = get_app_state()
 
     member_profile_list: list[PersonInput] = st.session_state.get(SESSION_MEMBERS, [])
@@ -109,9 +116,9 @@ def sync_member_profiles():
 
     if any(member.image is None for member in required_members):
         st.error(f'Please upload all {len(required_members)} photos before generating!')
-        return
+        return False
 
-    app_state.member_profiles = [
+    app_state.people_profiles = [
         Profile(
             # image is ensured to be not None above
             image=member.image,  # type: ignore
@@ -120,6 +127,7 @@ def sync_member_profiles():
         )
         for idx, member in enumerate(required_members)
     ]
+    return True
 
 
 def render_enhancement_proposal(field_key: str, proposed_text: str) -> Optional[bool]:
@@ -147,15 +155,49 @@ def render_enhancement_proposal(field_key: str, proposed_text: str) -> Optional[
 def render_member_inputs():
     st.header('📸 Upload Photos')
 
-    # Number of people
-    num_members = st.number_input(
-        label='Number of people in the card',
-        min_value=1,
-        max_value=10,
-        value=2,
-        step=1,
-        key=NUM_MEMBERS,
-    )
+    # Number of people with enhance all button
+    num_col1, num_col2 = st.columns([0.92, 0.08], gap='small', vertical_alignment='bottom')
+    with num_col1:
+        num_members = st.number_input(
+            label='Number of people in the card',
+            min_value=1,
+            max_value=10,
+            value=2,
+            step=1,
+            key=NUM_MEMBERS,
+        )
+    with num_col2:
+        # Check if all images are uploaded to enable the button
+        member_profile_list: list[PersonInput] = st.session_state.get(SESSION_MEMBERS, [])
+        all_images_uploaded = len(member_profile_list) >= num_members and all(
+            member.image is not None for member in member_profile_list[:num_members]
+        )
+        enhance_all = st.button(
+            label='✨',
+            key='enhance_all_profiles_btn',
+            help='Enhance all profiles with AI',
+            width='stretch',
+            disabled=not all_images_uploaded,
+        )
+
+    # Handle enhance all profiles
+    if enhance_all:
+        LOGGER.debug('Enhancing all profile descriptions...')
+        # Use sync_member_profiles to prepare profiles
+        if sync_member_profiles():
+            app_state = get_app_state()
+            with st.spinner('✨ Enhancing all profile descriptions...'):
+                # Enhance using the synced profiles
+                enhanced_profiles = asyncio.run(
+                    enhance_profile_descriptions(app_state.people_profiles)
+                )
+                # Apply enhancements directly to session state
+                member_profile_list = st.session_state[SESSION_MEMBERS]
+                for idx, enhanced_profile in enumerate(enhanced_profiles):
+                    member_profile_list[idx].description = enhanced_profile.description
+                LOGGER.info(f'Enhanced all {len(enhanced_profiles)} profiles')
+                st.success(f'✨ Enhanced all {len(enhanced_profiles)} profile(s)!')
+                st.rerun()
 
     if SESSION_CURRENT_MEMBER_INDEX not in st.session_state:
         st.session_state[SESSION_CURRENT_MEMBER_INDEX] = 0
@@ -181,7 +223,7 @@ def render_member_inputs():
 
     # File uploader
     uploaded_file = st.file_uploader(
-        f'Upload photo {current_member_idx + 1}',
+        label='Upload photo',
         type=['jpg', 'jpeg', 'png'],
         key=SESSION_UPLOAD_FMT.format(current_member_idx),
     )
@@ -204,15 +246,55 @@ def render_member_inputs():
     )
     current_member.name = name
 
-    # Description input with placeholder
-    description = st.text_area(
-        label='Description',
-        value=current_member.description,
-        placeholder='Describe this person...',
-        key=SESSION_DESC_FMT.format(current_member_idx),
-        height=TEXTAREA_HEIGHT,
-    )
-    current_member.description = description
+    # Description input with placeholder and enhancement button
+    desc_col1, desc_col2 = st.columns([0.92, 0.08], gap='small', vertical_alignment='center')
+    with desc_col1:
+        description = st.text_area(
+            label='Description',
+            value=current_member.description,
+            placeholder='Describe this person...',
+            key=SESSION_DESC_FMT.format(current_member_idx),
+            height=TEXTAREA_HEIGHT,
+        )
+        current_member.description = description
+    with desc_col2:
+        enhance_profile = st.button(
+            label='✨',
+            key=f'enhance_profile_{current_member_idx}_btn',
+            help='Enhance with AI',
+            width='stretch',
+            disabled=current_member.image is None,
+        )
+
+    # Handle individual profile enhancement
+    if enhance_profile and current_member.image:
+        LOGGER.debug(f'Enhancing profile description for member {current_member_idx}...')
+        with st.spinner('✨ Enhancing profile description...'):
+            enhanced_desc = asyncio.run(
+                enhance_profile_description(
+                    image=current_member.image,
+                    description=current_member.description,
+                )
+            )
+            st.session_state[SESSION_PROFILE_ENHANCED_FMT.format(current_member_idx)] = (
+                enhanced_desc
+            )
+
+    # Display proposal if we have enhanced text for this profile
+    enhanced_profile_key = SESSION_PROFILE_ENHANCED_FMT.format(current_member_idx)
+    enhanced_profile_desc = st.session_state.get(enhanced_profile_key)
+    if enhanced_profile_desc:
+        LOGGER.debug(f'Displaying enhancement proposal for profile {current_member_idx}')
+        result = render_enhancement_proposal(f'profile_{current_member_idx}', enhanced_profile_desc)
+        if result:
+            LOGGER.info(f'Profile {current_member_idx} enhancement ACCEPTED')
+            current_member.description = enhanced_profile_desc
+            del st.session_state[enhanced_profile_key]
+            st.rerun()
+        elif result is False:
+            LOGGER.info(f'Profile {current_member_idx} enhancement DECLINED')
+            del st.session_state[enhanced_profile_key]
+            st.rerun()
 
     # Navigation buttons below the member fields
     st.markdown('---')
@@ -289,7 +371,7 @@ def render_customization_inputs():
                 enhance_scene_instructions(
                     instructions=app_state.scene_instructions,
                     style_instructions=app_state.style_instructions,
-                    profile_descriptions=app_state.profile_descriptions,
+                    people_descriptions=app_state.people_descriptions,
                 )
             )
 
@@ -351,7 +433,7 @@ def render_customization_inputs():
                 enhance_style_instructions(
                     instructions=app_state.style_instructions,
                     scene_instructions=app_state.scene_instructions,
-                    profile_descriptions=app_state.profile_descriptions,
+                    people_descriptions=app_state.people_descriptions,
                 )
             )
 
@@ -455,7 +537,7 @@ def main():
                 # Generate the card
                 generated_image = asyncio.run(
                     generate_card(
-                        profiles=app_state.member_profiles,
+                        profiles=app_state.people_profiles,
                         scene_instructions=app_state.scene_instructions,
                         overlay_instructions=app_state.overlay_instructions,
                         style_instructions=app_state.style_instructions,
